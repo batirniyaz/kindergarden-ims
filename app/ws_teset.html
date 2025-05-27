@@ -1,0 +1,37 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Portion Estimation WebSocket Test</title>
+</head>
+<body>
+  <h1>Meal Portion Updates</h1>
+  <pre id="output">Waiting for updates...</pre>
+
+  <script>
+    const socket = new WebSocket("ws://10.30.0.101:1111/ws/portion/stream");
+
+    socket.onopen = () => {
+      console.log("✅ WebSocket Connected");
+      socket.send(JSON.stringify({ message: "Frontend connected" }));
+    };
+
+    socket.onmessage = (event) => {
+      console.log("📦 Message received:", event.data);
+      const output = document.getElementById("output");
+      output.textContent = "Update received:\n" + JSON.stringify(JSON.parse(event.data), null, 2);
+    };
+
+    socket.onerror = (error) => {
+      console.error("❌ WebSocket error:", error);
+    };
+
+    socket.onclose = () => {
+      console.log("🔌 WebSocket disconnected");
+    };
+  </script>
+</body>
+</html>
