@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Notifications WebSocket Test</title>
+    <style>
+        .notification {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .monthly_discrepancy {
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .insufficient_stock {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-time Notifications</h1>
+
+    <div id="status" class="status disconnected">WebSocket: Connecting...</div>
+
+    <h2>Notifications:</h2>
+    <div id="notifications-container">
+        <p>Loading notifications...</p>
+    </div>
+
+    <script>
+        let ws = null;
+        let notificationsData = [];
+
+        function connectWebSocket() {
+            ws = new WebSocket("ws://192.168.245.106:1112/ws/notification/alerts");
+
+            ws.onopen = function() {
+                console.log('✅ Notifications WebSocket connected');
+                loadInitialNotifications();
+            };
+
+            ws.onmessage = function(event) {
+                const newNotification = JSON.parse(event.data);
+                notificationsData.unshift(newNotification); // Add to beginning
+                displayNotifications(notificationsData);
+                console.log('🔔 New notification received:', newNotification);
+            };
+
+            ws.onclose = function() {
+                console.log('❌ Notifications WebSocket disconnected');
+            };
+        }
+
+        async function loadInitialNotifications() {
+            try {
+                const response = await fetch('http://192.168.245.106:1112/ws/notification/notifications');
+                const data = await response.json();
+                notificationsData = data.notifications;
+                displayNotifications(notificationsData);
+                console.log('✅ Loaded', notificationsData.length, 'existing notifications');
+            } catch (error) {
+                console.error('❌ Error loading notifications:', error);
+            }
+        }
+
+        function displayNotifications(notifications) {
+            const container = document.getElementById('notifications-container');
+
+            if (!notifications || notifications.length === 0) {
+                container.innerHTML = '<p>No notifications available</p>';
+                return;
+            }
+
+            container.innerHTML = notifications.map(n =>
+                `<div class="notification ${n.type}">
+                    <strong>${n.type?.replace('_', ' ').toUpperCase()}</strong><br>
+                    ${n.message}<br>
+                    <div class="timestamp">${new Date(n.timestamp).toLocaleString()}</div>
+                    ${n.meal_id ? `<small>Meal ID: ${n.meal_id}</small>` : ''}
+                </div>`
+            ).join('');
+        }
+
+        window.onload = function() {
+            connectWebSocket();
+        };
+    </script>
+</body>
+</html>
