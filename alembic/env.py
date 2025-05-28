@@ -9,7 +9,8 @@ from app.db.db import DATABASE_URL
 from alembic import context
 
 from app.auth.model import User, LoginInfo, UserRole, TokenBlacklist
-from app.models import action_log, meal_ingredient, serve_meal, delivery
+from app.models import action_log, meal_ingredient, serve_meal, delivery, portion_estimation, notification
+from app.changes.model import ChangeLog
 
 config = context.config
 
