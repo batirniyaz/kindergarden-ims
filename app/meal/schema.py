@@ -1,7 +1,7 @@
 import datetime
 
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Optional
 
 from app.schemas.util import TashkentBaseModel
 
@@ -20,6 +20,7 @@ class MealRead(MealCreate):
     created_at: datetime.datetime = Field(..., description="The time the meal was created")
     updated_at: datetime.datetime = Field(..., description="The time the meal was updated")
 
+    added_by: Optional[int] = Field(None, description="The ID of the user who added the meal")
     ingredients: List['MealIngredientRead'] = Field(default_factory=list, description="List of ingredients in the meal")
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True, validate_assignment=True)

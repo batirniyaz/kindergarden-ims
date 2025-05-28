@@ -9,9 +9,9 @@ from app.meal.schema import MealCreate
 from app.models.meal_ingredient import Meal
 
 
-async def create_meal(db: AsyncSession, meal: MealCreate) -> Meal:
+async def create_meal(db: AsyncSession, meal: MealCreate, user_id: int) -> Meal:
     try:
-        db_meal = Meal(**meal.model_dump())
+        db_meal = Meal(**meal.model_dump(), added_by=user_id)
         db.add(db_meal)
         await db.commit()
         await db.refresh(db_meal)

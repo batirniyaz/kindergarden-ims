@@ -1,37 +1,199 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Portion Estimation WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .error { background-color: #fff3cd; color: #856404; }
+        #portions-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+        .portion-item {
+            padding: 8px;
+            margin: 5px 0;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            border-radius: 3px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-  <h1>Meal Portion Updates</h1>
-  <pre id="output">Waiting for updates...</pre>
+    <h1>Meal Portion Updates</h1>
+    
+    <div id="status" class="status disconnected">WebSocket: Connecting...</div>
+    
+    <button onclick="reconnectWebSocket()">Reconnect WebSocket</button>
+    <button onclick="loadInitialPortions()">Reload Data</button>
+    
+    <h2>Current Portions:</h2>
+    <div id="portions-container">
+        <p>Loading portions...</p>
+    </div>
+    
+    <h2>Debug Log:</h2>
+    <pre id="output">Initializing...</pre>
 
-  <script>
-    const socket = new WebSocket("ws://10.30.0.101:1111/ws/portion/stream");
+    <script>
+        let ws = null;
+        let portionsData = [];
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
 
-    socket.onopen = () => {
-      console.log("✅ WebSocket Connected");
-      socket.send(JSON.stringify({ message: "Frontend connected" }));
-    };
+        function log(message) {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
 
-    socket.onmessage = (event) => {
-      console.log("📦 Message received:", event.data);
-      const output = document.getElementById("output");
-      output.textContent = "Update received:\n" + JSON.stringify(JSON.parse(event.data), null, 2);
-    };
+        function updateStatus(message, className) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${className}`;
+        }
 
-    socket.onerror = (error) => {
-      console.error("❌ WebSocket error:", error);
-    };
+        function connectWebSocket() {
+            try {
+                // Use the correct WebSocket URL
+                ws = new WebSocket("ws://10.30.0.101:1112/ws/portion/stream");
 
-    socket.onclose = () => {
-      console.log("🔌 WebSocket disconnected");
-    };
-  </script>
+                ws.onopen = function() {
+                    log('✅ WebSocket connected successfully');
+                    updateStatus('WebSocket: Connected', 'connected');
+                    reconnectAttempts = 0;
+                    loadInitialPortions();
+                };
+
+                ws.onmessage = function(event) {
+                    try {
+                        const newPortions = JSON.parse(event.data);
+                        portionsData = newPortions;
+                        displayPortions(portionsData);
+                        log(`🔄 Received ${newPortions.length} portion updates via WebSocket`);
+                    } catch (error) {
+                        log(`❌ Error parsing WebSocket message: ${error.message}`);
+                    }
+                };
+
+                ws.onclose = function(event) {
+                    log(`❌ WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
+                    updateStatus('WebSocket: Disconnected', 'disconnected');
+                    
+                    // Auto-reconnect logic
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        reconnectAttempts++;
+                        log(`🔄 Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`);
+                        setTimeout(connectWebSocket, 3000);
+                    } else {
+                        log('❌ Max reconnection attempts reached');
+                        updateStatus('WebSocket: Failed to reconnect', 'error');
+                    }
+                };
+
+                ws.onerror = function(error) {
+                    log(`❌ WebSocket error: ${error}`);
+                    updateStatus('WebSocket: Error', 'error');
+                };
+
+            } catch (error) {
+                log(`❌ Failed to create WebSocket connection: ${error.message}`);
+                updateStatus('WebSocket: Connection failed', 'error');
+            }
+        }
+
+        // Load existing data when page loads
+        async function loadInitialPortions() {
+            try {
+                log('🔄 Loading initial portions from API...');
+                
+                // Use the correct API URL - make sure it matches your backend
+                const response = await fetch('http://10.30.0.101:1112/ws/portion/portions');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                portionsData = data.portions || data; // Handle different response formats
+                displayPortions(portionsData);
+                log(`✅ Loaded ${portionsData.length} existing portions from API`);
+                
+            } catch (error) {
+                log(`❌ Error loading initial portions: ${error.message}`);
+                document.getElementById('portions-container').innerHTML = 
+                    `<p style="color: red;">Error loading data: ${error.message}</p>
+                     <p>Make sure your backend is running on http://10.30.0.101:1112</p>`;
+            }
+        }
+
+        function displayPortions(portions) {
+            const container = document.getElementById('portions-container');
+            
+            if (!portions || portions.length === 0) {
+                container.innerHTML = '<p>No portions available</p>';
+                return;
+            }
+
+            container.innerHTML = portions.map(p => 
+                `<div class="portion-item">
+                    <strong>Meal:</strong> ${p.meal_name || 'Unknown'} | 
+                    <strong>Portions:</strong> ${p.portion_count || 0}
+                    ${p.id ? ` | <strong>ID:</strong> ${p.id}` : ''}
+                </div>`
+            ).join('');
+        }
+
+        function reconnectWebSocket() {
+            log('🔄 Manual reconnection requested');
+            reconnectAttempts = 0;
+            if (ws) {
+                ws.close();
+            }
+            connectWebSocket();
+        }
+
+        // Initialize connection when page loads
+        window.onload = function() {
+            log('🚀 Page loaded, initializing WebSocket connection...');
+            connectWebSocket();
+        };
+
+        // Handle page unload
+        window.onbeforeunload = function() {
+            if (ws) {
+                ws.close();
+            }
+        };
+    </script>
 </body>
 </html>

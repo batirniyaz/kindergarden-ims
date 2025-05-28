@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -9,6 +11,8 @@ from app.ingredient.crud import get_ingredient
 from app.models.delivery import IngredientDelivery
 from app.schemas.delivery import IngredientDeliveryCreate
 from app.celery.tasks import generate_ingredient_usage
+
+from datetime import date
 
 
 async def create_delivery(db: AsyncSession, current_user, delivery: IngredientDeliveryCreate) -> IngredientDelivery:
@@ -41,13 +45,32 @@ async def create_delivery(db: AsyncSession, current_user, delivery: IngredientDe
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-async def get_deliveries(db: AsyncSession, limit: int = 10, page: int = 1) -> tuple[list[IngredientDelivery], int]:
+async def get_deliveries(
+        db: AsyncSession,
+        limit: int = 10,
+        page: int = 1,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        accepted: Optional[int] = None
+) -> tuple[list[IngredientDelivery], int]:
     try:
-        total_count = await db.scalar(select(func.count(IngredientDelivery.id)))
-        query = select(IngredientDelivery).limit(limit).offset((page - 1) * limit)
-        result = await db.execute   (query)
+        stmt = select(IngredientDelivery)
+        if accepted is not None:
+            stmt = stmt.filter(IngredientDelivery.accepted == accepted)
+        if start_date:
+            stmt = stmt.filter(IngredientDelivery.created_at >= start_date)
+        if end_date:
+            stmt = stmt.filter(IngredientDelivery.created_at <= end_date)
+
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total_count = await db.scalar(count_stmt)
+
+        query = stmt.order_by(IngredientDelivery.created_at.desc())
+        query = query.limit(limit).offset((page - 1) * limit)
+
+        result = await db.execute(query)
         deliveries = result.scalars().all()
-        return deliveries or [], total_count
+        return deliveries or [], total_count or 0
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

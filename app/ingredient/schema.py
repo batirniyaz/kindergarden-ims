@@ -36,7 +36,7 @@ class IngredientListResponse(TashkentBaseModel):
 class IngredientShallow(TashkentBaseModel):
     id: int = Field(..., description="The ID of the ingredient")
     name: str = Field(..., max_length=255, description="The name of the ingredient")
-    weight: float = Field(..., gt=0, description="The weight in grams of the ingredient")
+    weight: float = Field(..., ge=0, description="The weight in grams of the ingredient")
     created_at: datetime.datetime = Field(..., description="The time the ingredient was created")
     updated_at: datetime.datetime = Field(..., description="The time the ingredient was updated")
 

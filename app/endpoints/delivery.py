@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter
 
 from app.auth.util import UserDep
@@ -24,8 +26,11 @@ async def get_deliveries_endpoint(
         current_user: UserDep,
         limit: int = 10,
         page: int = 1,
+        start_date: date = None,
+        end_date: date = None,
+        accepted: int = None
 ):
-    deliveries, total_count = await get_deliveries(db, limit, page)
+    deliveries, total_count = await get_deliveries(db, limit, page, start_date=start_date, end_date=end_date, accepted=accepted)
     items = [IngredientDeliveryRead.model_validate(delivery) for delivery in deliveries]
     return IngredientDeliveryListResponse(total_count=total_count, items=items)
 

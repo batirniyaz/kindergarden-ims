@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter
 
 from app.db.get_db import SessionDep
@@ -22,10 +24,15 @@ async def create_serve_meal_endpoint(
 @router.get('/', response_model=ServeMealListResponse)
 async def get_serve_meals_endpoint(
         db: SessionDep,
+        current_user: UserDep,
         limit: int = 10,
-        page: int = 1
+        page: int = 1,
+        start_date: date = None,
+        end_date: date = None,
+        served_by: int = None
+
 ):
-    db_serve_meals, total_count = await get_serve_meals(db, limit, page)
+    db_serve_meals, total_count = await get_serve_meals(db, limit, page, start_date=start_date, end_date=end_date, served_by=served_by)
     items = [ServeMealRead.model_validate(serve_meal) for serve_meal in db_serve_meals]
     return ServeMealListResponse(total_count=total_count, meal_servings=items)
 

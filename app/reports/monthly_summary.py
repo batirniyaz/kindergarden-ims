@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 from fastapi import APIRouter
 
 from app.db.get_db import SessionDep
-from app.endpoints.notification import alerts_manager
+from app.endpoints.notification import broadcast_alert
 from app.models.delivery import IngredientDelivery
 from app.models.meal_ingredient import MealIngredient, Meal
 from app.models.serve_meal import MealServing
@@ -167,7 +167,7 @@ async def get_monthly_summary_report(
     }
 
     if overall_misuse:
-        await alerts_manager.broadcast({
+        await broadcast_alert({
             'type': 'monthly_discrepancy',
             'month': month,
             'year': year,
@@ -175,7 +175,7 @@ async def get_monthly_summary_report(
             'threshold': threshold_percentage,
             'message': report['overall_summary']['summary'],
             'timestamp': datetime.now().isoformat()
-        })
+        }, db)
 
     return report
 

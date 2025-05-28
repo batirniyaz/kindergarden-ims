@@ -5,6 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import jwt
 from jwt import PyJWTError
 
+from app.changes.funcs import set_current_user
 from app.config import SECRET, ALGORITHM
 from app.db.db import async_session_maker
 from app.models.action_log import ActionLog
@@ -37,6 +38,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 user_info["phone"] = payload.get("phone")
                 request.state.user = user_info
                 authorized = True
+
+                set_current_user(user_info["user_id"])
             except PyJWTError:
                 pass
 

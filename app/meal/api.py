@@ -15,7 +15,7 @@ async def create_meal_endpoint(
         current_user: ManagerDep,
         db: SessionDep
 ):
-    db_meal = await create_meal(db, meal)
+    db_meal = await create_meal(db, meal, current_user['id'])
     return MealRead.model_validate(db_meal)
 
 

@@ -7,6 +7,7 @@ from app.endpoints.meal_ingredient import router as meal_ingredient_router
 from app.endpoints.serve_meal import router as serve_meal_router
 from app.endpoints.delivery import router as delivery_router
 from app.endpoints.portion_estimation import router as portion_estimation_router
+from app.endpoints.notification import router as notification_router
 from app.reports import router as report_router
 
 router = APIRouter()
@@ -19,6 +20,7 @@ router.include_router(meal_router, prefix="/meal", tags=["Meal"])
 router.include_router(meal_ingredient_router, prefix="/meal-ingredient", tags=["Meal Ingredient"])
 router.include_router(serve_meal_router, prefix="/serve-meal", tags=["Serve Meal"])
 router.include_router(portion_estimation_router, prefix="/ws/portion", tags=["Portion Estimation"])
+router.include_router(notification_router, prefix="/ws/notification", tags=["Notification"])
 router.include_router(report_router, prefix="/report", tags=["Report"])
 
 
