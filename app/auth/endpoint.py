@@ -17,7 +17,7 @@ async def register_user(user: UserCreate, current_user: AdminDep, db: SessionDep
 
 
 @router.get("/", response_model=list[UserRead])
-async def get_users_endpoint(current_user: AdminDep, db: SessionDep, limit: int = 10, page: int = 1, role: UserRole = None):
+async def get_users_endpoint(current_user: UserDep, db: SessionDep, limit: int = 10, page: int = 1, role: UserRole = None):
     return await get_users(db, limit=limit, page=page, role=role if role else None)
 
 
